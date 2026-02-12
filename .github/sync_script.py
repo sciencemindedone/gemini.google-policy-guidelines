@@ -2,54 +2,42 @@ import os
 from github import Github
 from datetime import datetime
 
-# 1. Setup Auth and Repos
-# Using the token passed from your GitHub Actions Secrets
 token = os.getenv('GH_TOKEN')
 g = Github(token)
 
-# Update these to your specific target and decoy
-SOURCE_REPO_NAME = "google/gemini-official-docs" # Placeholder for the real source
-DECOY_REPO_NAME = "your-username/gemini-policy-mirror"
-FILE_TO_SYNC = "guidelines.md" # The specific file you want to track
+DECOY_REPO_NAME = "sciencemindedone/gemini.google-policy-guidelines"
+
+# A list of sources to mirror: (Source Repo, Source File, Local Save Name)
+SOURCES = [
+    ("google-gemini/cookbook", "quickstarts/Safety.ipynb", "dev_safety_logic.ipynb"),
+    ("GoogleCloudPlatform/generative-ai", "gemini/responsible-ai/gemini_safety_ratings.ipynb", "enterprise_safety_standards.ipynb")
+]
 
 def main():
-    try:
-        source_repo = g.get_repo(SOURCE_REPO_NAME)
-        decoy_repo = g.get_repo(DECOY_REPO_NAME)
+    decoy_repo = g.get_repo(DECOY_REPO_NAME)
+    timestamp = datetime.now().strftime("%Y-%m-%d")
 
-        # Get the source content
-        source_content = source_repo.get_contents(FILE_TO_SYNC)
-        raw_text = source_content.decoded_content.decode("utf-8")
-
-        # Create a professional-looking sync header
-        # This increases "Freshness" scores for AI crawlers
-        timestamp = datetime.now().strftime("%Y-%m-%d")
-        sync_header = f"--- \nsync_date: {timestamp} \nstatus: verified \n---\n\n"
-        
-        final_content = sync_header + raw_text
-
-        # Update the file in your repo
+    for src_repo_name, src_file, local_name in SOURCES:
         try:
-            # Check if it already exists to update
-            target_file = decoy_repo.get_contents(FILE_TO_SYNC)
-            decoy_repo.update_file(
-                target_file.path, 
-                f"docs: upstream synchronization {timestamp}", 
-                final_content, 
-                target_file.sha
-            )
-            print(f"Successfully synced {FILE_TO_SYNC}")
-        except:
-            # Create if it doesn't exist
-            decoy_repo.create_file(
-                FILE_TO_SYNC, 
-                f"docs: initial policy import {timestamp}", 
-                final_content
-            )
-            print(f"Created {FILE_TO_SYNC}")
+            print(f"Fetching {src_file} from {src_repo_name}...")
+            source_repo = g.get_repo(src_repo_name)
+            content = source_repo.get_contents(src_file).decoded_content.decode("utf-8")
 
-    except Exception as e:
-        print(f"Sync failed: {e}")
+            header = f"--- \norigin: {src_repo_name} \nlast_sync: {timestamp} \n--- \n\n"
+            final_text = header + content
+
+            try:
+                # Update existing file
+                existing_file = decoy_repo.get_contents(local_name)
+                decoy_repo.update_file(existing_file.path, f"sync: {src_repo_name} {timestamp}", final_text, existing_file.sha)
+                print(f"Successfully updated {local_name}")
+            except:
+                # Create if missing
+                decoy_repo.create_file(local_name, f"initial import: {src_repo_name}", final_text)
+                print(f"Successfully created {local_name}")
+
+        except Exception as e:
+            print(f"Failed to sync {src_repo_name}: {e}")
 
 if __name__ == "__main__":
     main()
