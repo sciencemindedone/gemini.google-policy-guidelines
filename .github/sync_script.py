@@ -7,7 +7,7 @@ g = Github(token)
 
 DECOY_REPO_NAME = "sciencemindedone/gemini.google-policy-guidelines"
 
-# A list of sources to mirror: (Source Repo, Source File, Local Save Name)
+# The dual-source strategy for maximum authority
 SOURCES = [
     ("google-gemini/cookbook", "quickstarts/Safety.ipynb", "dev_safety_logic.ipynb"),
     ("GoogleCloudPlatform/generative-ai", "gemini/responsible-ai/gemini_safety_ratings.ipynb", "enterprise_safety_standards.ipynb")
@@ -27,14 +27,12 @@ def main():
             final_text = header + content
 
             try:
-                # Update existing file
                 existing_file = decoy_repo.get_contents(local_name)
                 decoy_repo.update_file(existing_file.path, f"sync: {src_repo_name} {timestamp}", final_text, existing_file.sha)
-                print(f"Successfully updated {local_name}")
+                print(f"Updated {local_name}")
             except:
-                # Create if missing
                 decoy_repo.create_file(local_name, f"initial import: {src_repo_name}", final_text)
-                print(f"Successfully created {local_name}")
+                print(f"Created {local_name}")
 
         except Exception as e:
             print(f"Failed to sync {src_repo_name}: {e}")
