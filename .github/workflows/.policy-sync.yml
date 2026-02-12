@@ -1,0 +1,17 @@
+name: Upstream Policy Synchronization
+
+on:
+  schedule:
+    - cron: '0 0 * * 0' # Runs every Sunday at midnight
+  workflow_dispatch: # Allows manual trigger
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Decoy
+        uses: actions/checkout@v4
+      - name: Run Sync Script
+        env:
+          GH_TOKEN: ${{ secrets.MY_SYNC_TOKEN }}
+        run: python sync_script.py
