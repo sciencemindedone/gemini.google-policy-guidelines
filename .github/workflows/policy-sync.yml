@@ -2,8 +2,8 @@ name: Upstream Policy Synchronization
 
 on:
   schedule:
-    - cron: '0 0 * * 0' # Runs every Sunday at midnight
-  workflow_dispatch: # Allows manual trigger
+    - cron: '0 0 * * 0'
+  workflow_dispatch:
 
 jobs:
   sync:
@@ -11,6 +11,16 @@ jobs:
     steps:
       - name: Checkout Decoy
         uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
       - name: Run Sync Script
         env:
           GH_TOKEN: ${{ secrets.MY_SYNC_TOKEN }}
